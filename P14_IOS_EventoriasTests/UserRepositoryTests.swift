@@ -8,6 +8,7 @@
 import XCTest
 @testable import P14_IOS_Eventorias
 
+@MainActor
 final class UserRepositoryTests: XCTestCase {
 
     func testFetchesAvatarFromFirestoreOnFirstCall() async throws {
@@ -45,12 +46,14 @@ final class UserRepositoryTests: XCTestCase {
         let sut = FirebaseUserRepository(firestore: firestore)
 
         _ = try await sut.avatar(for: "user1", forceRefresh: false)
+        XCTAssertEqual(document.lastSource, .default)
 
         document.snapshot = MockDocumentSnapshot(AvatarDocument(avatarUrl: "https://example.com/b.png"))
         let refreshed = try await sut.avatar(for: "user1", forceRefresh: true)
 
         XCTAssertEqual(document.getDocumentCallCount, 2)
         XCTAssertEqual(refreshed.avatarURL, URL(string: "https://example.com/b.png"))
+        XCTAssertEqual(document.lastSource, .server)
     }
 
     func testDifferentUsersAreCachedIndependently() async throws {

@@ -33,13 +33,15 @@ final class MockDocument: FirestoreDocumentProtocol, @unchecked Sendable {
     var snapshot: FirestoreDocumentSnapshotProtocol
     var error: Error?
     private(set) var getDocumentCallCount = 0
+    private(set) var lastSource: FirestoreFetchSource?
 
     init(snapshot: FirestoreDocumentSnapshotProtocol) {
         self.snapshot = snapshot
     }
 
-    func getDocument() async throws -> FirestoreDocumentSnapshotProtocol {
+    func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol {
         getDocumentCallCount += 1
+        lastSource = source
         if let error { throw error }
         return snapshot
     }
@@ -50,9 +52,15 @@ final class MockCollection: FirestoreCollectionProtocol, @unchecked Sendable {
     var error: Error?
     var documentsByPath: [String: MockDocument] = [:]
     private(set) var getDocumentsCallCount = 0
+    private(set) var lastSource: FirestoreFetchSource?
 
-    func getDocuments() async throws -> FirestoreQuerySnapshotProtocol {
+    var addDocumentError: Error?
+    private(set) var addedDocuments: [Any] = []
+    private(set) var addDocumentCallCount = 0
+
+    func getDocuments(source: FirestoreFetchSource) async throws -> FirestoreQuerySnapshotProtocol {
         getDocumentsCallCount += 1
+        lastSource = source
         if let error { throw error }
         return querySnapshot
     }
@@ -64,6 +72,12 @@ final class MockCollection: FirestoreCollectionProtocol, @unchecked Sendable {
         let newDocument = MockDocument(snapshot: MockDocumentSnapshot(AvatarDocument(avatarUrl: nil)))
         documentsByPath[documentPath] = newDocument
         return newDocument
+    }
+
+    func addDocument<T: Encodable>(from value: T) async throws {
+        addDocumentCallCount += 1
+        addedDocuments.append(value)
+        if let addDocumentError { throw addDocumentError }
     }
 }
 

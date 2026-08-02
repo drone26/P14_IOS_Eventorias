@@ -10,31 +10,47 @@ import FirebaseFirestore
 
 // MARK: - Protocol definitions
 
+/// Mirrors Firebase's `FirestoreSource` without leaking the Firebase type into the abstraction,
+/// so repositories can request a genuine server round-trip (bypassing both our own in-memory
+/// cache and Firestore's local persistence) when the caller explicitly asks for a refresh.
+enum FirestoreFetchSource: Sendable, Equatable {
+    case `default`
+    case server
+    case cache
+}
+
 /// Thin abstraction over Firestore so repositories can be unit tested against a mock database.
+@MainActor
 protocol FirestoreDocumentSnapshotProtocol: Sendable {
     func data<T: Decodable>(as type: T.Type) throws -> T
 }
 
+@MainActor
 protocol FirestoreQuerySnapshotProtocol: Sendable {
     var documents: [FirestoreDocumentSnapshotProtocol] { get }
 }
 
+@MainActor
 protocol FirestoreDocumentProtocol: Sendable {
-    func getDocument() async throws -> FirestoreDocumentSnapshotProtocol
+    func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol
 }
 
+@MainActor
 protocol FirestoreCollectionProtocol: Sendable {
-    func getDocuments() async throws -> FirestoreQuerySnapshotProtocol
+    func getDocuments(source: FirestoreFetchSource) async throws -> FirestoreQuerySnapshotProtocol
     func document(_ documentPath: String) -> FirestoreDocumentProtocol
+    func addDocument<T: Encodable>(from value: T) async throws
 }
 
+@MainActor
 protocol FirestoreServiceProtocol: Sendable {
     func collection(_ collectionPath: String) -> FirestoreCollectionProtocol
 }
 
 // MARK: - Default Firebase-backed implementations
 
-final class DefaultFirestoreDocumentSnapshot: @unchecked Sendable, FirestoreDocumentSnapshotProtocol {
+@MainActor
+final class DefaultFirestoreDocumentSnapshot: FirestoreDocumentSnapshotProtocol {
     private let snapshot: DocumentSnapshot
     init(_ snapshot: DocumentSnapshot) { self.snapshot = snapshot }
     func data<T: Decodable>(as type: T.Type) throws -> T {
@@ -42,7 +58,8 @@ final class DefaultFirestoreDocumentSnapshot: @unchecked Sendable, FirestoreDocu
     }
 }
 
-final class DefaultFirestoreQuerySnapshot: @unchecked Sendable, FirestoreQuerySnapshotProtocol {
+@MainActor
+final class DefaultFirestoreQuerySnapshot: FirestoreQuerySnapshotProtocol {
     private let snapshot: QuerySnapshot
     init(_ snapshot: QuerySnapshot) { self.snapshot = snapshot }
     var documents: [FirestoreDocumentSnapshotProtocol] {
@@ -50,26 +67,45 @@ final class DefaultFirestoreQuerySnapshot: @unchecked Sendable, FirestoreQuerySn
     }
 }
 
-final class DefaultFirestoreDocument: @unchecked Sendable, FirestoreDocumentProtocol {
+@MainActor
+final class DefaultFirestoreDocument: FirestoreDocumentProtocol {
     private let reference: DocumentReference
     init(_ reference: DocumentReference) { self.reference = reference }
-    func getDocument() async throws -> FirestoreDocumentSnapshotProtocol {
-        DefaultFirestoreDocumentSnapshot(try await reference.getDocument())
+    func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol {
+        DefaultFirestoreDocumentSnapshot(try await reference.getDocument(source: source.firestoreSource))
     }
 }
 
-final class DefaultFirestoreCollection: @unchecked Sendable, FirestoreCollectionProtocol {
+@MainActor
+final class DefaultFirestoreCollection: FirestoreCollectionProtocol {
     private let reference: CollectionReference
     init(_ reference: CollectionReference) { self.reference = reference }
-    func getDocuments() async throws -> FirestoreQuerySnapshotProtocol {
-        DefaultFirestoreQuerySnapshot(try await reference.getDocuments())
+    func getDocuments(source: FirestoreFetchSource) async throws -> FirestoreQuerySnapshotProtocol {
+        DefaultFirestoreQuerySnapshot(try await reference.getDocuments(source: source.firestoreSource))
     }
     func document(_ documentPath: String) -> FirestoreDocumentProtocol {
         DefaultFirestoreDocument(reference.document(documentPath))
     }
+    func addDocument<T: Encodable>(from value: T) async throws {
+        // CollectionReference's Codable convenience only ships a synchronous/completion-handler
+        // overload, so the encode step is done manually to reach the SDK's raw async `addDocument`.
+        let encoded = try Firestore.Encoder().encode(value)
+        _ = try await reference.addDocument(data: encoded)
+    }
 }
 
-final class DefaultFirestoreService: @unchecked Sendable, FirestoreServiceProtocol {
+private extension FirestoreFetchSource {
+    var firestoreSource: FirestoreSource {
+        switch self {
+        case .default: .default
+        case .server: .server
+        case .cache: .cache
+        }
+    }
+}
+
+@MainActor
+final class DefaultFirestoreService: FirestoreServiceProtocol {
     private let firestore: Firestore
     init(_ firestore: Firestore = Firestore.firestore()) { self.firestore = firestore }
     func collection(_ collectionPath: String) -> FirestoreCollectionProtocol {

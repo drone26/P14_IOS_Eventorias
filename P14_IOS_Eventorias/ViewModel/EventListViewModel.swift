@@ -30,8 +30,8 @@ final class EventListViewModel {
     private let eventRepository: EventRepositoryProtocol
     private var allEvents: [Event] = []
 
-    init(eventRepository: EventRepositoryProtocol = FirebaseEventRepository()) {
-        self.eventRepository = eventRepository
+    init(eventRepository: EventRepositoryProtocol? = nil) {
+        self.eventRepository = eventRepository ?? FirebaseEventRepository()
     }
 
     func loadEvents(forceRefresh: Bool = false) async {

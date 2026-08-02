@@ -8,16 +8,18 @@
 import Foundation
 
 /// Caches only what EventRowView needs about a user: their id and avatar URL.
+@MainActor
 protocol UserRepositoryProtocol: Sendable {
     func avatar(for userId: String, forceRefresh: Bool) async throws -> UserAvatar
 }
 
-actor FirebaseUserRepository: UserRepositoryProtocol {
+@MainActor
+final class FirebaseUserRepository: UserRepositoryProtocol {
     private let firestore: FirestoreServiceProtocol
     private var cache: [String: UserAvatar] = [:]
 
-    init(firestore: FirestoreServiceProtocol = DefaultFirestoreService()) {
-        self.firestore = firestore
+    init(firestore: FirestoreServiceProtocol? = nil) {
+        self.firestore = firestore ?? DefaultFirestoreService()
     }
 
     func avatar(for userId: String, forceRefresh: Bool) async throws -> UserAvatar {
@@ -25,7 +27,7 @@ actor FirebaseUserRepository: UserRepositoryProtocol {
             return cached
         }
 
-        let snapshot = try await firestore.collection("users").document(userId).getDocument()
+        let snapshot = try await firestore.collection("users").document(userId).getDocument(source: forceRefresh ? .server : .default)
         let avatarUrlString = try? snapshot.data(as: AvatarDocument.self).avatarUrl
         let avatar = UserAvatar(userId: userId, avatarURL: avatarUrlString.flatMap(URL.init(string:)))
         cache[userId] = avatar
@@ -33,6 +35,7 @@ actor FirebaseUserRepository: UserRepositoryProtocol {
     }
 }
 
+@MainActor
 struct AvatarDocument: Decodable {
     let avatarUrl: String?
 }

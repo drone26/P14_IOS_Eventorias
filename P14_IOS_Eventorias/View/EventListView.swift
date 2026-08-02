@@ -11,7 +11,7 @@ struct EventListView: View {
     @State private var viewModel: EventListViewModel
     @State private var showCreateEvent = false
 
-    init(eventRepository: EventRepositoryProtocol = FirebaseEventRepository()) {
+    init(eventRepository: EventRepositoryProtocol? = nil) {
         _viewModel = State(initialValue: EventListViewModel(eventRepository: eventRepository))
     }
 
@@ -40,8 +40,18 @@ struct EventListView: View {
         .task {
             await viewModel.loadEvents()
         }
+        .onChange(of: showCreateEvent) { wasPresented, isPresented in
+            // The list view isn't recreated when navigating back from the create screen, so
+            // `.task` won't refire on its own; force a refresh here to pick up the new event.
+            if wasPresented && !isPresented {
+                Task { await viewModel.loadEvents(forceRefresh: true) }
+            }
+        }
         .navigationDestination(isPresented: $showCreateEvent) {
             EventCreationView()
+        }
+        .navigationDestination(for: Event.self) { event in
+            EventDetailView(event: event)
         }
     }
 
@@ -74,9 +84,12 @@ struct EventListView: View {
             ScrollView {
                 LazyVStack(spacing: 16) {
                     ForEach(viewModel.events) { event in
-                        EventRowView(event: event)
-                            .padding(.horizontal)
-                            .accessibilityIdentifier("event_row_\(event.title)")
+                        NavigationLink(value: event) {
+                            EventRowView(event: event)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal)
+                        .accessibilityIdentifier("event_row_\(event.title)")
                     }
                 }
             }
