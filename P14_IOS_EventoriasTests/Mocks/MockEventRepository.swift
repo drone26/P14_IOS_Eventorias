@@ -14,10 +14,18 @@ final class MockEventRepository: EventRepositoryProtocol, @unchecked Sendable {
     private(set) var eventsCallCount = 0
     private(set) var lastForceRefresh: Bool?
 
+    var addEventError: Error?
+    private(set) var addedEvents: [Event] = []
+
     func events(forceRefresh: Bool) async throws -> [Event] {
         eventsCallCount += 1
         lastForceRefresh = forceRefresh
         if let error { throw error }
         return eventsToReturn
+    }
+
+    func addEvent(_ event: Event) async throws {
+        addedEvents.append(event)
+        if let addEventError { throw addEventError }
     }
 }

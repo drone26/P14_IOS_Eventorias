@@ -1,0 +1,12 @@
+//
+//  APIKeys.swift
+//  P14_IOS_Eventorias
+//
+//  Created by Mathieu ARRIO on 02/08/2026.
+//
+
+import Foundation
+
+enum APIKeys {
+    static let googleMapsStaticAPIKey = "YOUR GOOGLE MAP STATIC API KEY"
+}

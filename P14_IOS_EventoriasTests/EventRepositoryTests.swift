@@ -8,6 +8,7 @@
 import XCTest
 @testable import P14_IOS_Eventorias
 
+@MainActor
 final class EventRepositoryTests: XCTestCase {
 
     private func makeEvent(title: String) -> Event {
@@ -51,6 +52,7 @@ final class EventRepositoryTests: XCTestCase {
         let sut = FirebaseEventRepository(firestore: firestore)
 
         _ = try await sut.events(forceRefresh: false)
+        XCTAssertEqual(collection.lastSource, .default)
 
         collection.querySnapshot = MockQuerySnapshot(documents: [
             MockDocumentSnapshot(makeEvent(title: "Concert")),
@@ -60,6 +62,9 @@ final class EventRepositoryTests: XCTestCase {
 
         XCTAssertEqual(collection.getDocumentsCallCount, 2)
         XCTAssertEqual(refreshed.map(\.title), ["Concert", "Expo"])
+        // A forced refresh must bypass Firestore's own local cache too, not just ours,
+        // otherwise pull-to-refresh can silently keep serving stale on-disk data.
+        XCTAssertEqual(collection.lastSource, .server)
     }
 
     func testFetchErrorPropagatesAndDoesNotCache() async {
@@ -81,5 +86,52 @@ final class EventRepositoryTests: XCTestCase {
         ])
         let events = try? await sut.events(forceRefresh: false)
         XCTAssertEqual(events?.map(\.title), ["Concert"])
+    }
+
+    func testAddEventWritesToFirestoreCollection() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "events")
+        let sut = FirebaseEventRepository(firestore: firestore)
+
+        try await sut.addEvent(makeEvent(title: "Concert"))
+
+        XCTAssertEqual(collection.addDocumentCallCount, 1)
+        XCTAssertEqual(collection.addedDocuments.compactMap { $0 as? Event }.map(\.title), ["Concert"])
+    }
+
+    func testAddEventPropagatesError() async {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "events")
+        collection.addDocumentError = NSError(domain: "Test", code: 1)
+        let sut = FirebaseEventRepository(firestore: firestore)
+
+        do {
+            try await sut.addEvent(makeEvent(title: "Concert"))
+            XCTFail("Expected error to be thrown")
+        } catch {
+            // expected
+        }
+    }
+
+    func testAddEventInvalidatesCacheSoNextFetchHitsFirestore() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "events")
+        collection.querySnapshot = MockQuerySnapshot(documents: [
+            MockDocumentSnapshot(makeEvent(title: "Concert"))
+        ])
+        let sut = FirebaseEventRepository(firestore: firestore)
+        _ = try await sut.events(forceRefresh: false)
+        XCTAssertEqual(collection.getDocumentsCallCount, 1)
+
+        try await sut.addEvent(makeEvent(title: "Expo"))
+
+        collection.querySnapshot = MockQuerySnapshot(documents: [
+            MockDocumentSnapshot(makeEvent(title: "Concert")),
+            MockDocumentSnapshot(makeEvent(title: "Expo"))
+        ])
+        let events = try await sut.events(forceRefresh: false)
+
+        XCTAssertEqual(collection.getDocumentsCallCount, 2)
+        XCTAssertEqual(events.map(\.title), ["Concert", "Expo"])
     }
 }
