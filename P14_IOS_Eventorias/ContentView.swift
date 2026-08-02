@@ -13,13 +13,9 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                VStack {
-                    Image(systemName: "globe")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
-                    Text("Hello, world!")
+                NavigationStack {
+                    EventListView()
                 }
-                .padding()
             } else {
                 EmailSignInView(authManager: authManager)
             }

@@ -16,8 +16,8 @@
 		390D2B4A301CFE3D00360298 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 390D2B49301CFE3D00360298 /* FirebaseMessaging */; };
 		390D2B4C301CFE3D00360298 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 390D2B4B301CFE3D00360298 /* FirebaseStorage */; };
 		390D2B4E301CFE3D00360298 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 390D2B4D301CFE3D00360298 /* FirebaseStorageCombine-Community */; };
-		390D2B50301CFF6F00360298 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 390D2B4F301CFF6F00360298 /* GoogleService-Info.plist */; };
 		3955C2C3301C97D300FB0D5E /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 3955C2C2301C97D300FB0D5E /* .gitignore */; };
+		39FAC6EA301F0CDE006FFFFE /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 39FAC6E9301F0CDE006FFFFE /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,11 +38,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		390D2B4F301CFF6F00360298 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		3955C2C2301C97D300FB0D5E /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		39E36E90301C91A20089FAF0 /* P14_IOS_Eventorias.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = P14_IOS_Eventorias.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		39E36E9D301C91A30089FAF0 /* P14_IOS_EventoriasTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = P14_IOS_EventoriasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		39E36EA7301C91A30089FAF0 /* P14_IOS_EventoriasUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = P14_IOS_EventoriasUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		39FAC6E9301F0CDE006FFFFE /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -113,12 +113,12 @@
 		39E36E87301C91A20089FAF0 = {
 			isa = PBXGroup;
 			children = (
-				390D2B4F301CFF6F00360298 /* GoogleService-Info.plist */,
 				39E36E92301C91A20089FAF0 /* P14_IOS_Eventorias */,
 				39E36EA0301C91A30089FAF0 /* P14_IOS_EventoriasTests */,
 				39E36EAA301C91A30089FAF0 /* P14_IOS_EventoriasUITests */,
 				39E36E91301C91A20089FAF0 /* Products */,
 				3955C2C2301C97D300FB0D5E /* .gitignore */,
+				39FAC6E9301F0CDE006FFFFE /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -264,8 +264,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				39FAC6EA301F0CDE006FFFFE /* GoogleService-Info.plist in Resources */,
 				3955C2C3301C97D300FB0D5E /* .gitignore in Resources */,
-				390D2B50301CFF6F00360298 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
