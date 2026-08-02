@@ -13,9 +13,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                NavigationStack {
-                    EventListView()
-                }
+                MainTabView()
             } else {
                 EmailSignInView(authManager: authManager)
             }
