@@ -67,21 +67,17 @@ struct ProfileView: View {
 
                     // Persists the preference only; wiring real push notifications requires
                     // an Apple Developer account and is left for a future implementation.
-                    HStack {
-                        Toggle("", isOn: Binding(
-                            get: { viewModel.profile?.notificationsEnabled ?? false },
-                            set: { newValue in
-                                Task { await viewModel.setNotificationsEnabled(newValue) }
-                            }
-                        ))
-                        .labelsHidden()
-                        .tint(AppTheme.accent)
-                        .disabled(viewModel.profile == nil)
-
+                    Toggle(isOn: Binding(
+                        get: { viewModel.profile?.notificationsEnabled ?? false },
+                        set: { newValue in
+                            Task { await viewModel.setNotificationsEnabled(newValue) }
+                        }
+                    )) {
                         Text("Notifications")
                             .foregroundStyle(.white)
                     }
-                    .accessibilityElement(children: .combine)
+                    .tint(AppTheme.accent)
+                    .disabled(viewModel.profile == nil)
                     .accessibilityIdentifier("profile_notifications_toggle")
 
                     if let errorMessage = viewModel.errorMessage {

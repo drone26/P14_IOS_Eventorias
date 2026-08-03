@@ -10,6 +10,12 @@ xcuserdata/
 **/.firebaserc
 **/APIKeys.swift
 
+## Firebase CLI / Emulator Suite
+.firebase/
+*-debug.log
+firebase-export-*/
+emulator-data/
+
 ## Obj-C/Swift specific
 *.hmap
 
