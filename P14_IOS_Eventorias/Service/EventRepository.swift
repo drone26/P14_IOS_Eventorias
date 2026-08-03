@@ -31,7 +31,16 @@ final class FirebaseEventRepository: EventRepositoryProtocol {
         }
 
         let snapshot = try await firestore.collection("events").getDocuments(source: forceRefresh ? .server : .default)
-        let events = snapshot.documents.compactMap { try? $0.data(as: Event.self) }
+        let events = snapshot.documents.compactMap { document -> Event? in
+            do {
+                return try document.data(as: Event.self)
+            } catch {
+                // A malformed/partial document would otherwise vanish from the list with no
+                // signal at all, indistinguishable from "no events exist".
+                print("FirebaseEventRepository: skipping a document that failed to decode as Event: \(error)")
+                return nil
+            }
+        }
         cachedEvents = events
         return events
     }
