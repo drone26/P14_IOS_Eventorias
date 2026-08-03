@@ -33,6 +33,7 @@ protocol FirestoreQuerySnapshotProtocol: Sendable {
 @MainActor
 protocol FirestoreDocumentProtocol: Sendable {
     func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol
+    func setData<T: Encodable>(from value: T, merge: Bool) async throws
 }
 
 @MainActor
@@ -73,6 +74,11 @@ final class DefaultFirestoreDocument: FirestoreDocumentProtocol {
     init(_ reference: DocumentReference) { self.reference = reference }
     func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol {
         DefaultFirestoreDocumentSnapshot(try await reference.getDocument(source: source.firestoreSource))
+    }
+    func setData<T: Encodable>(from value: T, merge: Bool) async throws {
+        // Mirrors addDocument's manual encode step to reach the SDK's raw async setData overload.
+        let encoded = try Firestore.Encoder().encode(value)
+        try await reference.setData(encoded, merge: merge)
     }
 }
 

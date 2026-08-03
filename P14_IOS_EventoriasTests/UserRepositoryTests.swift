@@ -69,4 +69,93 @@ final class UserRepositoryTests: XCTestCase {
         XCTAssertEqual(avatar1.avatarURL, URL(string: "https://example.com/a.png"))
         XCTAssertEqual(avatar2.avatarURL, URL(string: "https://example.com/b.png"))
     }
+
+    func testFetchProfileReturnsNilWhenDocumentDoesNotDecode() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        document.snapshot = MockDocumentSnapshot(AvatarDocument(avatarUrl: nil))
+        let sut = FirebaseUserRepository(firestore: firestore)
+
+        let profile = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+
+        XCTAssertNil(profile)
+    }
+
+    func testFetchProfileReturnsDecodedProfile() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        document.snapshot = MockDocumentSnapshot(UserProfile(id: "user1", name: "Alice", email: "alice@example.com", notificationsEnabled: true))
+        let sut = FirebaseUserRepository(firestore: firestore)
+
+        let profile = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+
+        XCTAssertEqual(profile?.name, "Alice")
+        XCTAssertEqual(profile?.email, "alice@example.com")
+        XCTAssertEqual(profile?.notificationsEnabled, true)
+        XCTAssertEqual(document.getDocumentCallCount, 1)
+    }
+
+    func testFetchProfileSecondCallReturnsCacheWithoutHittingFirestore() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        document.snapshot = MockDocumentSnapshot(UserProfile(id: "user1", name: "Alice", email: "alice@example.com"))
+        let sut = FirebaseUserRepository(firestore: firestore)
+
+        _ = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+        _ = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+
+        XCTAssertEqual(document.getDocumentCallCount, 1)
+    }
+
+    func testFetchProfileForceRefreshRefetchesFromFirestore() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        document.snapshot = MockDocumentSnapshot(UserProfile(id: "user1", name: "Alice", email: "alice@example.com"))
+        let sut = FirebaseUserRepository(firestore: firestore)
+
+        _ = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+        document.snapshot = MockDocumentSnapshot(UserProfile(id: "user1", name: "Alice Updated", email: "alice@example.com"))
+        let refreshed = try await sut.fetchProfile(uid: "user1", forceRefresh: true)
+
+        XCTAssertEqual(document.getDocumentCallCount, 2)
+        XCTAssertEqual(refreshed?.name, "Alice Updated")
+        XCTAssertEqual(document.lastSource, .server)
+    }
+
+    func testSaveProfileWritesToFirestoreWithMergeAndCachesResult() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        let sut = FirebaseUserRepository(firestore: firestore)
+        let profile = UserProfile(id: "user1", name: "Alice", email: "alice@example.com", notificationsEnabled: true)
+
+        try await sut.saveProfile(profile)
+
+        XCTAssertEqual(document.setDataCallCount, 1)
+        XCTAssertEqual(document.lastSetDataMerge, true)
+
+        // Cached, so a subsequent fetch doesn't need to hit Firestore again.
+        let cached = try await sut.fetchProfile(uid: "user1", forceRefresh: false)
+        XCTAssertEqual(cached?.name, "Alice")
+        XCTAssertEqual(document.getDocumentCallCount, 0)
+    }
+
+    func testSaveProfilePropagatesFirestoreError() async throws {
+        let firestore = MockFirestoreService()
+        let collection = firestore.collection(named: "users")
+        let document = collection.document("user1") as! MockDocument
+        document.setDataError = NSError(domain: "Test", code: 3, userInfo: [NSLocalizedDescriptionKey: "Write failed"])
+        let sut = FirebaseUserRepository(firestore: firestore)
+
+        do {
+            try await sut.saveProfile(UserProfile(id: "user1", name: "Alice", email: "alice@example.com"))
+            XCTFail("Expected save to throw")
+        } catch {
+            XCTAssertEqual((error as NSError).localizedDescription, "Write failed")
+        }
+    }
 }
