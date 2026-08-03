@@ -39,11 +39,23 @@ final class MockDocument: FirestoreDocumentProtocol, @unchecked Sendable {
         self.snapshot = snapshot
     }
 
+    var setDataError: Error?
+    private(set) var setDataCallCount = 0
+    private(set) var lastSetData: Any?
+    private(set) var lastSetDataMerge: Bool?
+
     func getDocument(source: FirestoreFetchSource) async throws -> FirestoreDocumentSnapshotProtocol {
         getDocumentCallCount += 1
         lastSource = source
         if let error { throw error }
         return snapshot
+    }
+
+    func setData<T: Encodable>(from value: T, merge: Bool) async throws {
+        setDataCallCount += 1
+        lastSetData = value
+        lastSetDataMerge = merge
+        if let setDataError { throw setDataError }
     }
 }
 

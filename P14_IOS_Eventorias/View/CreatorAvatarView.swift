@@ -49,6 +49,9 @@ struct CreatorAvatarView: View {
     private func loadAvatar() async {
         // Firebase isn't configured in SwiftUI previews; avoid touching it there.
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else { return }
+        // Firestore throws on an empty document path; this happens transiently when a view
+        // re-renders with no signed-in user (e.g. right after sign out) before it's dismissed.
+        guard !creatorId.isEmpty else { return }
 
         let repository = userRepository ?? FirebaseUserRepository()
         guard let avatar = try? await repository.avatar(for: creatorId, forceRefresh: false),
