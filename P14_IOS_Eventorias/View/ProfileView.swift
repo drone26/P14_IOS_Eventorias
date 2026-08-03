@@ -6,14 +6,22 @@
 //
 
 import SwiftUI
+import PhotosUI
 import FirebaseAuth
 
 struct ProfileView: View {
     @Environment(AuthManager.self) private var authManager
     @State private var viewModel: ProfileViewModel
+    @State private var showAvatarOptions = false
+    @State private var showCamera = false
+    @State private var showPhotoLibrary = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var capturedImage: UIImage?
 
-    init(userRepository: UserRepositoryProtocol? = nil) {
-        _viewModel = State(initialValue: ProfileViewModel(userRepository: userRepository))
+    private let isCameraAvailable = UIImagePickerController.isSourceTypeAvailable(.camera)
+
+    init(userRepository: UserRepositoryProtocol? = nil, storageService: ImageStorageServiceProtocol? = nil) {
+        _viewModel = State(initialValue: ProfileViewModel(userRepository: userRepository, storageService: storageService))
     }
 
     var body: some View {
@@ -35,8 +43,13 @@ struct ProfileView: View {
 
                         Spacer()
 
-                        CreatorAvatarView(creatorId: authManager.currentUser?.uid ?? "", size: 56)
-                            .accessibilityIdentifier("profile_avatar")
+                        Button {
+                            showAvatarOptions = true
+                        } label: {
+                            avatarView
+                        }
+                        .accessibilityLabel("Change profile photo")
+                        .accessibilityIdentifier("profile_avatar")
                     }
                     .padding(.top, 16)
 
@@ -108,6 +121,71 @@ struct ProfileView: View {
         .alert("Error", isPresented: $authManager.isShowingSignOutError) {
         } message: {
             Text(authManager.signOutErrorMessage ?? "")
+        }
+        .confirmationDialog("Change Profile Photo", isPresented: $showAvatarOptions, titleVisibility: .visible) {
+            if isCameraAvailable {
+                Button("Take Photo") {
+                    showCamera = true
+                }
+            }
+            Button("Choose from Library") {
+                showPhotoLibrary = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showPhotoLibrary, selection: $selectedPhotoItem, matching: .images)
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await viewModel.updateAvatar(image)
+                }
+                selectedPhotoItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            ImagePicker(selectedImage: $capturedImage, sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, newImage in
+            if let newImage {
+                Task { await viewModel.updateAvatar(newImage) }
+                capturedImage = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var avatarView: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let selectedAvatarImage = viewModel.selectedAvatarImage {
+                    Image(uiImage: selectedAvatarImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(Circle())
+                } else {
+                    CreatorAvatarView(creatorId: authManager.currentUser?.uid ?? "", size: 56)
+                }
+            }
+            .overlay {
+                if viewModel.isUpdatingAvatar {
+                    Circle()
+                        .fill(.black.opacity(0.4))
+                        .overlay {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                }
+            }
+
+            Image(systemName: "camera.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(.white)
+                .padding(5)
+                .background(AppTheme.accent)
+                .clipShape(Circle())
         }
     }
 
