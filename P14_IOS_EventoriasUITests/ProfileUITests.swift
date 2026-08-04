@@ -75,6 +75,35 @@ final class ProfileUITests: XCTestCase {
         XCTAssertEqual(reloadedToggle.value as? String, "1")
     }
 
+    /// The Auth emulator's `signUp` REST call never sets a display name, so `ProfileViewModel`
+    /// falls back to the default "User" name when it creates the profile document.
+    @MainActor
+    func testProfileDisplaysDefaultUserName() throws {
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+
+        openProfileTab(app)
+
+        let nameText = app.staticTexts["profile_name_text"]
+        XCTAssertTrue(nameText.waitForExistence(timeout: 5))
+        XCTAssertEqual(nameText.label, "User")
+    }
+
+    /// On this size class the confirmation dialog renders as a popover with no "Cancel" row
+    /// (tapping outside the popover dismisses it instead), so this only asserts on the options
+    /// that are always present as rows: "Choose from Library" is offered, "Take Photo" isn't.
+    @MainActor
+    func testTappingAvatarShowsPhotoOptionsMenuWithoutCameraOption() throws {
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+        openProfileTab(app)
+
+        app.buttons["profile_avatar"].tap()
+
+        XCTAssertTrue(app.buttons["Choose from Library"].waitForExistence(timeout: 5))
+        // The Simulator has no camera hardware, so `isCameraAvailable` is false and the
+        // confirmation dialog never renders the "Take Photo" option.
+        XCTAssertFalse(app.buttons["Take Photo"].exists)
+    }
+
     @MainActor
     func testSignOutReturnsToSignInScreen() throws {
         let app = launchAndSignIn(email: testEmail, password: testPassword)

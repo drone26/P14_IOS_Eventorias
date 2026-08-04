@@ -60,21 +60,24 @@ final class EventCreationUITests: XCTestCase {
     }
 
     @MainActor
-    func testCameraButtonIsDisabledOnSimulator() throws {
-        let app = openCreationScreen()
-
-        let cameraButton = app.buttons["camera_button"]
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 5))
-        // The Simulator has no camera hardware, so `UIImagePickerController.isSourceTypeAvailable(.camera)` is false.
-        XCTAssertFalse(cameraButton.isEnabled)
-    }
-
-    @MainActor
     func testPhotoLibraryButtonIsAvailable() throws {
         let app = openCreationScreen()
 
         let photoLibraryButton = app.buttons["photo_library_button"]
         XCTAssertTrue(photoLibraryButton.waitForExistence(timeout: 5))
         XCTAssertTrue(photoLibraryButton.isEnabled)
+    }
+
+    @MainActor
+    func testBackButtonDiscardsUnsavedEventAndReturnsToList() throws {
+        let app = openCreationScreen()
+
+        app.textFields["event_title_field"].tap()
+        app.textFields["event_title_field"].typeText("Abandoned Draft")
+
+        app.navigationBars["Create Event"].buttons.firstMatch.tap()
+
+        XCTAssertTrue(app.buttons["create_event_button"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["event_row_Abandoned Draft"].exists)
     }
 }

@@ -94,11 +94,102 @@ final class EventListUITests: XCTestCase {
     }
 
     @MainActor
+    func testSortMenuDateDescendingOrdersEventsByDate() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Early Show", description: "Desc", date: .now, address: "Addr", creatorId: "creator"
+        )
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Late Show", description: "Desc", date: .now.addingTimeInterval(3600), address: "Addr", creatorId: "creator"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+        XCTAssertTrue(app.buttons["event_row_Early Show"].waitForExistence(timeout: 5))
+
+        func rowIdentifiers() -> [String] {
+            let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'event_row_'"))
+            return (0..<rows.count).map { rows.element(boundBy: $0).identifier }
+        }
+
+        XCTAssertEqual(rowIdentifiers(), ["event_row_Early Show", "event_row_Late Show"])
+
+        app.buttons["sort_menu"].tap()
+        let dateDescOption = app.buttons["Date (Éloigné)"]
+        XCTAssertTrue(dateDescOption.waitForExistence(timeout: 5))
+        dateDescOption.tap()
+
+        XCTAssertEqual(rowIdentifiers(), ["event_row_Late Show", "event_row_Early Show"])
+    }
+
+    @MainActor
+    func testSearchWithNoMatchesShowsEmptyState() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Alpha Concert", description: "Desc", date: .now, address: "Addr", creatorId: "creator"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+        XCTAssertTrue(app.buttons["event_row_Alpha Concert"].waitForExistence(timeout: 5))
+
+        let searchField = app.searchFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        searchField.tap()
+        searchField.typeText("NoSuchEventTitle")
+
+        XCTAssertTrue(app.staticTexts["No event found."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["event_row_Alpha Concert"].exists)
+    }
+
+    @MainActor
+    func testPullToRefreshReloadsEvents() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Refresh Test Event", description: "Desc", date: .now, address: "Addr", creatorId: "creator"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+        XCTAssertTrue(app.buttons["event_row_Refresh Test Event"].waitForExistence(timeout: 5))
+
+        let scrollView = app.scrollViews.firstMatch
+        let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.05))
+        let finish = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+        start.press(forDuration: 0.05, thenDragTo: finish)
+
+        XCTAssertTrue(app.buttons["event_row_Refresh Test Event"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testCreateEventButtonNavigatesToCreationScreen() throws {
         let app = launchAndSignIn(email: testEmail, password: testPassword)
 
         tapWhenHittable(app.buttons["create_event_button"], in: app)
 
         XCTAssertTrue(app.textFields["event_title_field"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testEventRowWithoutCoverImageShowsPlaceholder() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "No Cover Event", description: "Desc", date: .now, address: "Addr", creatorId: "creator"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+
+        let row = app.buttons["event_row_No Cover Event"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("No cover photo"))
+    }
+
+    @MainActor
+    func testEventRowWithBrokenCoverImageUrlShowsFailureState() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Broken Cover Event", description: "Desc", date: .now, address: "Addr", creatorId: "creator",
+            coverImageUrl: "http://127.0.0.1:9/does-not-exist.jpg"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+
+        let row = app.buttons["event_row_Broken Cover Event"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        // AsyncImage settles asynchronously, so poll until the failure label lands.
+        let failureLabelAppeared = NSPredicate(format: "label CONTAINS 'Cover photo unavailable'")
+        await fulfillment(of: [expectation(for: failureLabelAppeared, evaluatedWith: row)], timeout: 5)
     }
 }
