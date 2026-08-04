@@ -32,8 +32,7 @@ final class EventDetailUITests: XCTestCase {
 
         let app = launchAndSignIn(email: testEmail, password: testPassword)
         let row = app.buttons["event_row_Comedy Night"]
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.tap()
+        tapWhenHittable(row, in: app)
 
         XCTAssertTrue(app.navigationBars["Comedy Night"].waitForExistence(timeout: 5))
         return app
