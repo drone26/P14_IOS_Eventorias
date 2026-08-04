@@ -23,14 +23,18 @@ struct CreatorAvatarView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
+                    .accessibilityLabel("Creator avatar photo")
             } else if hasAvatarURL {
                 placeholder.overlay(ProgressView())
+                    .accessibilityLabel("Creator avatar loading")
             } else {
                 placeholder
+                    .accessibilityLabel("Creator avatar placeholder")
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+        .accessibilityIdentifier("creator_avatar")
         .task(id: creatorId) {
             await loadAvatar()
         }

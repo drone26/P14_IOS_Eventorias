@@ -163,4 +163,33 @@ final class EventListUITests: XCTestCase {
 
         XCTAssertTrue(app.textFields["event_title_field"].waitForExistence(timeout: 5))
     }
+
+    @MainActor
+    func testEventRowWithoutCoverImageShowsPlaceholder() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "No Cover Event", description: "Desc", date: .now, address: "Addr", creatorId: "creator"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+
+        let row = app.buttons["event_row_No Cover Event"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("No cover photo"))
+    }
+
+    @MainActor
+    func testEventRowWithBrokenCoverImageUrlShowsFailureState() async throws {
+        try await FirebaseEmulatorTestSupport.createEvent(
+            title: "Broken Cover Event", description: "Desc", date: .now, address: "Addr", creatorId: "creator",
+            coverImageUrl: "http://127.0.0.1:9/does-not-exist.jpg"
+        )
+
+        let app = launchAndSignIn(email: testEmail, password: testPassword)
+
+        let row = app.buttons["event_row_Broken Cover Event"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        // AsyncImage settles asynchronously, so poll until the failure label lands.
+        let failureLabelAppeared = NSPredicate(format: "label CONTAINS 'Cover photo unavailable'")
+        await fulfillment(of: [expectation(for: failureLabelAppeared, evaluatedWith: row)], timeout: 5)
+    }
 }

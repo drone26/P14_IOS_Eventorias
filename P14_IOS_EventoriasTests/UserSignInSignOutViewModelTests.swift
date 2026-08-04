@@ -85,4 +85,50 @@ final class UserSignInSignOutViewModelTests: XCTestCase {
         XCTAssertTrue(sut.isShowingSignOutError)
         XCTAssertEqual(sut.signOutErrorMessage, "Sign out failed")
     }
+
+    func testIsAuthenticatedReflectsAuthManagerState() {
+        let authManager = AuthManager(authService: MockAuthService())
+        let sut = UserSignInSignOutViewModel(authManager: authManager)
+
+        XCTAssertFalse(sut.isAuthenticated)
+
+        authManager.isAuthenticated = true
+
+        XCTAssertTrue(sut.isAuthenticated)
+    }
+
+    func testIsShowingSignInErrorSetterUpdatesAuthManager() async {
+        let mockAuthService = MockAuthService()
+        mockAuthService.signInError = NSError(domain: "AuthTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid credentials"])
+        let sut = UserSignInSignOutViewModel(authManager: AuthManager(authService: mockAuthService))
+        sut.email = "test@example.com"
+        sut.password = "wrong-password"
+        await sut.signIn()
+
+        XCTAssertTrue(sut.isShowingSignInError)
+
+        sut.isShowingSignInError = false
+
+        XCTAssertFalse(sut.isShowingSignInError)
+    }
+
+    func testIsShowingSignOutErrorSetterUpdatesAuthManager() {
+        let mockAuthService = MockAuthService()
+        mockAuthService.signOutError = NSError(domain: "AuthTests", code: 2, userInfo: [NSLocalizedDescriptionKey: "Sign out failed"])
+        let sut = UserSignInSignOutViewModel(authManager: AuthManager(authService: mockAuthService))
+        sut.signOut()
+
+        XCTAssertTrue(sut.isShowingSignOutError)
+
+        sut.isShowingSignOutError = false
+
+        XCTAssertFalse(sut.isShowingSignOutError)
+    }
+
+    func testDefaultInitializerUsesSharedAuthManager() {
+        let sut = UserSignInSignOutViewModel()
+
+        XCTAssertFalse(sut.isAuthenticated)
+        XCTAssertFalse(sut.canSubmit)
+    }
 }

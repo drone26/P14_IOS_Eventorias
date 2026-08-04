@@ -51,19 +51,23 @@ struct EventRowView: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 120)
                     .clipped()
+                    .accessibilityLabel("Cover photo")
             } else {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
                         Color.gray.opacity(0.3)
                             .overlay(ProgressView())
+                            .accessibilityLabel("Loading cover photo")
                     case .success(let image):
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
+                            .accessibilityLabel("Cover photo")
                     case .failure:
                         Color.gray.opacity(0.3)
                             .overlay(Image(systemName: "exclamationmark.triangle").foregroundStyle(.red))
+                            .accessibilityLabel("Cover photo unavailable")
                     @unknown default:
                         EmptyView()
                     }
@@ -75,6 +79,7 @@ struct EventRowView: View {
             Color.gray.opacity(0.3)
                 .frame(width: 120)
                 .overlay(Image(systemName: "photo").foregroundStyle(.gray))
+                .accessibilityLabel("No cover photo")
         }
     }
 }
