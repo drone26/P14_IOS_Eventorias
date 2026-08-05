@@ -11,8 +11,8 @@ struct EventListView: View {
     @State private var viewModel: EventListViewModel
     @State private var showCreateEvent = false
 
-    init(eventRepository: EventRepositoryProtocol? = nil) {
-        _viewModel = State(initialValue: EventListViewModel(eventRepository: eventRepository))
+    init(viewModel: EventListViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -48,7 +48,7 @@ struct EventListView: View {
             }
         }
         .navigationDestination(isPresented: $showCreateEvent) {
-            EventCreationView()
+            EventCreationView(viewModel: EventCreationViewModel())
         }
         .navigationDestination(for: Event.self) { event in
             EventDetailView(event: event)
@@ -123,6 +123,6 @@ struct EventListView: View {
 
 #Preview {
     NavigationStack {
-        EventListView()
+        EventListView(viewModel: EventListViewModel())
     }
 }
