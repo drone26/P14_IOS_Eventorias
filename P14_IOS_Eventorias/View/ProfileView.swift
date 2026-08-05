@@ -20,8 +20,8 @@ struct ProfileView: View {
 
     private let isCameraAvailable = UIImagePickerController.isSourceTypeAvailable(.camera)
 
-    init(userRepository: UserRepositoryProtocol? = nil, storageService: ImageStorageServiceProtocol? = nil) {
-        _viewModel = State(initialValue: ProfileViewModel(userRepository: userRepository, storageService: storageService))
+    init(viewModel: ProfileViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -202,7 +202,7 @@ struct ProfileView: View {
 
 #Preview {
     NavigationStack {
-        ProfileView()
+        ProfileView(viewModel: ProfileViewModel())
     }
     .environment(AuthManager())
 }

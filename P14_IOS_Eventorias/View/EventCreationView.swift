@@ -18,8 +18,8 @@ struct EventCreationView: View {
 
     private let isCameraAvailable = UIImagePickerController.isSourceTypeAvailable(.camera)
 
-    init(eventRepository: EventRepositoryProtocol? = nil, storageService: ImageStorageServiceProtocol? = nil) {
-        _viewModel = State(initialValue: EventCreationViewModel(eventRepository: eventRepository, storageService: storageService))
+    init(viewModel: EventCreationViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -178,7 +178,7 @@ struct EventCreationView: View {
 
 #Preview {
     NavigationStack {
-        EventCreationView()
+        EventCreationView(viewModel: EventCreationViewModel())
     }
     .environment(AuthManager())
 }

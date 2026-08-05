@@ -12,14 +12,14 @@ struct MainTabView: View {
         TabView {
             Tab("Events", systemImage: "calendar") {
                 NavigationStack {
-                    EventListView()
+                    EventListView(viewModel: EventListViewModel())
                 }
             }
             .accessibilityIdentifier("events_tab")
 
             Tab("Profile", systemImage: "person.fill") {
                 NavigationStack {
-                    ProfileView()
+                    ProfileView(viewModel: ProfileViewModel())
                 }
             }
             .accessibilityIdentifier("profile_tab")
