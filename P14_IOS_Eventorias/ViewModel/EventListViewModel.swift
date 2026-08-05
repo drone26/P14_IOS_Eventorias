@@ -9,9 +9,9 @@ import Foundation
 import Observation
 
 enum SortOption: String, CaseIterable {
-    case dateAsc = "Date (Proche)"
-    case dateDesc = "Date (Éloigné)"
-    case titleAsc = "Titre (A-Z)"
+    case dateAsc = "Date (Closest)"
+    case dateDesc = "Date (Farthest)"
+    case titleAsc = "Title (A-Z)"
 }
 
 @MainActor
@@ -44,7 +44,7 @@ final class EventListViewModel {
             allEvents = try await eventRepository.events(forceRefresh: forceRefresh)
             applyFilters()
         } catch {
-            errorMessage = "Erreur de chargement : \(error.localizedDescription)"
+            errorMessage = "Loading error: \(error.localizedDescription)"
         }
 
         isLoading = false
