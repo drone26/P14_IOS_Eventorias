@@ -86,7 +86,7 @@ final class EventListUITests: XCTestCase {
         XCTAssertEqual(rowIdentifiers(), ["event_row_Zebra Show", "event_row_Apple Fair"])
 
         app.buttons["sort_menu"].tap()
-        let titleSortOption = app.buttons["Titre (A-Z)"]
+        let titleSortOption = app.buttons["Title (A-Z)"]
         XCTAssertTrue(titleSortOption.waitForExistence(timeout: 5))
         titleSortOption.tap()
 
@@ -113,7 +113,7 @@ final class EventListUITests: XCTestCase {
         XCTAssertEqual(rowIdentifiers(), ["event_row_Early Show", "event_row_Late Show"])
 
         app.buttons["sort_menu"].tap()
-        let dateDescOption = app.buttons["Date (Éloigné)"]
+        let dateDescOption = app.buttons["Date (Farthest)"]
         XCTAssertTrue(dateDescOption.waitForExistence(timeout: 5))
         dateDescOption.tap()
 

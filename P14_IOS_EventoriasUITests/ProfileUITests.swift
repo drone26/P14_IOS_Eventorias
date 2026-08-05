@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import UIKit
 
 /// Requires the Firebase Emulator Suite to be running locally (`firebase emulators:start`).
 /// The app is launched with the "UI_TESTING" argument so it connects to the emulators instead
@@ -90,18 +91,26 @@ final class ProfileUITests: XCTestCase {
 
     /// On this size class the confirmation dialog renders as a popover with no "Cancel" row
     /// (tapping outside the popover dismisses it instead), so this only asserts on the options
-    /// that are always present as rows: "Choose from Library" is offered, "Take Photo" isn't.
+    /// that depend on hardware: "Choose from Library" is always offered, and "Take Photo" is
+    /// gated on camera availability (`ProfileView.isCameraAvailable`).
     @MainActor
-    func testTappingAvatarShowsPhotoOptionsMenuWithoutCameraOption() throws {
+    func testTappingAvatarShowsPhotoOptionsMenu() throws {
         let app = launchAndSignIn(email: testEmail, password: testPassword)
         openProfileTab(app)
 
         app.buttons["profile_avatar"].tap()
 
         XCTAssertTrue(app.buttons["Choose from Library"].waitForExistence(timeout: 5))
-        // The Simulator has no camera hardware, so `isCameraAvailable` is false and the
-        // confirmation dialog never renders the "Take Photo" option.
-        XCTAssertFalse(app.buttons["Take Photo"].exists)
+        // The dialog only renders "Take Photo" when a camera exists. The test runner shares the
+        // simulator's hardware with the app, so its `isSourceTypeAvailable(.camera)` matches what
+        // the app sees — on Apple Silicon the simulator can expose the host Mac's camera, so this
+        // can't assume the option is always absent.
+        let takePhoto = app.buttons["Take Photo"]
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            XCTAssertTrue(takePhoto.exists)
+        } else {
+            XCTAssertFalse(takePhoto.exists)
+        }
     }
 
     @MainActor

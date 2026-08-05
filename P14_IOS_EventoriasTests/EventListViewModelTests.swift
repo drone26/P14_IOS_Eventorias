@@ -48,7 +48,7 @@ final class EventListViewModelTests: XCTestCase {
         await sut.loadEvents()
 
         XCTAssertTrue(sut.events.isEmpty)
-        XCTAssertEqual(sut.errorMessage, "Erreur de chargement : Network down")
+        XCTAssertEqual(sut.errorMessage, "Loading error: Network down")
         XCTAssertFalse(sut.isLoading)
     }
 
